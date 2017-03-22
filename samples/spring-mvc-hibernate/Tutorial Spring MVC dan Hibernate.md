@@ -1,0 +1,69 @@
+# Software yang dibutuhkan
+1. Spring Tool Suite (STS)  
+Instalasi STS dilakukan dengan cara mengekstrak file `spring-tool-suite-3.8.3.RELEASE-e4.6.2-win32-x86_64.zip`.  
+Untuk menjalankan STS, 
+2. [Oracle Database 11g Express Edition (Oracle XE)](http://www.oracle.com/technetwork/database/database-technologies/express-edition/overview/index.html)  
+Ikuti cara instalasi Oracle XE dari tautan [berikut](http://docs.oracle.com/cd/E17781_01/install.112/e18803/toc.htm#XEINW124).
+
+# Bagian Utama Aplikasi Spring MVC
+## Model
+Model adalah kelas Java yang merepresentasikan tabel di dalam basis data. Di dalam Java, kelas model biasa juga disebut sebagai *entity class* atau *entity bean*. Secara umum, *entity class* adalah kelas Java biasa dengan tambahan anotasi/*annotation* di tiap *field*-nya.  
+Anotasi adalah salah satu mekanisme di Java untuk melakukan *mapping* dan konfigurasi tanpa memerlukan file konfigurasi tambahan. Anotasi ditandai dengan simbol `@<TipeAnotasi>`. Contohnya adalah sebagai berikut.
+```java
+@Entity
+@Table(name="Person")
+public class Person {
+    ...
+}
+```
+Kode program di atas berarti bahwa kelas `Person` adalah **sebuah *entity class/model*** (ditandai dengan anotasi `@Entity`) dari  **tabel `Person`** (ditandai dengan `@Table(name="Person")`) di dalam basis data.
+
+### Model DAO (Data Access Object)
+DAO adalah salah satu *software pattern* di Java dalam mengakses basis data. Biasanya kelas DAO dibagi menjadi dua, yaitu: *interface* dan *implementation*.  
+Fungsi dari kelas *interface* adalah mendefinisikan fungsi-fungsi *query* yang dimiliki oleh sebuah model. Sedangkan kelas *implementation* biasanya berisi implementasi fungsi-fungsi tersebut. Biasanya dalam pengembangan aplikasi, kita memerlukan lebih dari satu kelas *implementation*. Contoh skenarionya adalah sebagai berikut.
+> Kita memiliki kelas `Person.` Kemudian kita memiliki kelas `PersonDAO` yang berisi fungsi-fungsi query (misal: `insertPerson`, `getAllPersons`, `getPersonById`, dll). Kemudian kita memiliki dua buah kelas implementasi, yaitu `PersonStaticDAOImpl` dan `PersonDBDAOImpl`.  
+Saat pengembangan, mungkin kita menggunakan data dari `PersonStaticDAOImpl` yang berisi data-data `Person` statis (mungkin karena basis data belum dibuat). Kemudian saat basis data sudah ada, kita *switch* menggunakan `PersonDBDAOImpl` yang merupakan kelas dengan koneksi yang datanya berasal dari basis data menggunakan `Hibernate`. Karena fungsi-fungsi yang dipanggil sama, maka kita tidak perlu mengubah pemanggilan fungsi di dalam *view*-nya.
+
+### Repository Pattern pada Spring MVC
+Spring MVC biasanya menggunakan repository pattern di dalam mengakses basis data. Selain implementasi DAO, Spring juga biasanya memisahkan kelas untuk mengakses basis data ke dalam kelas-kelas *service*. Kelas *service* ini memiliki fungsi-fungsi yang sama dengan kelas DAOImpl. Tujuan dari *service* ini adalah memudahkan dalam proses inisialisasi objek saat aplikasi berjalan. Di dalam Spring MVC, biasanya inisialisasi objek tidak dilakukan di dalam kode program, melainkan di dalam file konfigurasi. Proses ini disebut sebagai *dependency injection*.
+
+## View
+View di dalam aplikasi Spring MVC sebenarnya adalah file HTML biasa dengan beberapa *markup* tambahan. File HTML tersebut biasanya diberi ekstensi .jsp atau .xhtml. View di dalam Spring MVC mendukung *template*, penyisipan kode Java di dalam HTML, tag *directive* Spring dan lain-lain. View *engine* yang digunakan oleh Spring MVC antara lain JSP, Apache Tiles, Thymeleaf, dan lain-lain. Versi Spring yang terbaru menggunakan *engine* Thymeleaf. Perbandingan antar view *engine* dapat dilihat pada artikel [berikut ini](https://spring.io/understanding/view-templates).
+
+## Controller
+*Controller* di dalam Spring MVC adalah sebuah kelas yang mengatur *mapping* URL *request* dari user. Setiap *request* URL dari user nantinya akan dilayani oleh sebuah kelas *controller* dan fungsi di dalamnya. Setiap fungsi akan me-*redirect* setiap *request* ke dalam sebuah view, dengan opsi mengirimkan data ke dalam view-nya. *Return* value dari sebuah view biasanya adalah String yang berarti nama view yang akan akan ditampilkan. Contohnya adalah sebagai berikut.
+```java
+...
+    @RequestMapping(value = "/persons", method = RequestMethod.GET)
+	public String listPersons(Model model) {
+		model.addAttribute("person", new Person());
+		model.addAttribute("listPersons", this.personService.listPersons());
+		return "person";
+	}
+...
+```
+Kode program di atas berarti apabila ada user yang mengakses URL `/persons` dengan metode `GET`, maka akan dibuatkan dua buah objek yaitu `person` dan `listPersons`. `person` merupakan objek baru (biasanya digunakan untuk mengeset form), dan `listPersons` merupakan data yang didapatkan dari pemanggilan fungsi `listPersons` dari `personService`
+
+## Maven
+[Maven]((https://maven.apache.org/)) adalah salah satu *dependency manager* dan *build tools* untuk Java. Konfigurasi Maven disimpan di dalam sebuah file XML bernama `pom.xml`. Apabila kita ingin menambahkan *library dependencies* untuk projek kita, maka kita perlu menambahkannya ke dalam file `pom.xml`. Demikian pula untuk proses *build*. Kita bisa menambahkan beberapa strategi *build* dan *deployment* projek di dalam file `pom.xml`.
+
+## Hibernate
+`Hibernate` adalah salah satu pustaka ORM (*Object Relational Mapping*) yang berfungsi untuk menghubungkan/*mapping* kode program kita dengan basis data. Proses CRUD di dalam basis data dapat dilakukan dengan mudah apabila kita menggunakan sebuah ORM. Salah satu objek penting di dalam `Hibernate` yaitu `SessionFactory`. `SessionFactory` berfungsi untuk mengatur koneksi ke dalam basis data, meneruskan *query*, dan mendapatkan data hasil *query*.  
+`Hibernate` mendukung dua macam konfigurasi *mapping*: anotasi dan file konfigurasi (*hibernate-cfg.xml*). Pemilihan konfigurasi *mapping* bebas sesuai dengan kebiasaan pengembang, biasanya mengikuti kebiasaan yang ada di dalam ekosistem server aplikasi.
+
+## J2EE Server
+Aplikasi Spring MVC berjalan di atas server berbasis Java. Salah satu server web berbasis Java yang bisa kita gunakan adalah Apache Tomcat. Pada aplikasi Spring Tool Suite, sudah disediakan sebuah server Apache Tomcat bawaan dengan nama Pivotal tc Server Developer Edition. Aplikasi Spring MVC yang dijalankan akan di-*deploy* di dalam server tersebut.
+
+
+# Contoh Aplikasi
+## Mempersiapkan Basis Data
+## Membuat ...
+## Membuat ...
+
+# Materi Lain yang Bisa Dipelajari
+1. Maven Build Tools
+2. Repository Pattern
+3. Dependency Injection
+
+# Referensi Tutorial
+1. [Spring MVC Hibernate MySQL Integration CRUD Example Tutorial](http://www.journaldev.com/3531/spring-mvc-hibernate-mysql-integration-crud-example-tutorial)
